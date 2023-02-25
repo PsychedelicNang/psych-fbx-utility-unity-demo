@@ -58,3 +58,11 @@ sysinfo.txt
 # Crashlytics generated file
 crashlytics-build.properties
 
+unity-demo/[Ll]ibrary/
+unity-demo/[Tt]emp/
+unity-demo/[Oo]bj/
+unity-demo/[Bb]uild/
+unity-demo/[Bb]uilds/
+unity-demo/[Ll]ogs/
+unity-demo/[Mm]emoryCaptures/
+unity-demo/[Uu]serSettings/
