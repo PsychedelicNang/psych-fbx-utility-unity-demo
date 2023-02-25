@@ -1,0 +1,3 @@
+[submodule "Submodules/psych-fbx-utility"]
+	path = Submodules/psych-fbx-utility
+	url = https://github.com/PsychedelicNang/psych-fbx-utility.git
