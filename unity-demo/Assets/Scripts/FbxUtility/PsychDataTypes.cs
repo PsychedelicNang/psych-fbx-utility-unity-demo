@@ -103,7 +103,7 @@ namespace Psych
         public IntPtr m_materialProperties;
 
         public CPPPropertyData[] MaterialProperties =>
-            MarshalHelpers.MarshalUnmananagedArray2Struct<CPPPropertyData>(m_materialProperties, (int)CMaterialInfo.PropertyType.PROPERTYTYPE_COUNT);
+            MarshalHelpers.MarshalUnmanagedArrayToStruct<CPPPropertyData>(m_materialProperties, (int)CMaterialInfo.PropertyType.PROPERTYTYPE_COUNT);
 
         public Texture2D[] Textures
         {
@@ -136,22 +136,22 @@ namespace Psych
     {
         public IntPtr m_allVerticesPositions;
         public CMath.Vector3[] VertexPositions =>
-            MarshalHelpers.MarshalUnmananagedArray2Struct<CMath.Vector3>(m_allVerticesPositions, (int)m_vertexCount);
+            MarshalHelpers.MarshalUnmanagedArrayToStruct<CMath.Vector3>(m_allVerticesPositions, (int)m_vertexCount);
 
         public IntPtr m_normals;
 
         public CMath.Vector3[] Normals =>
-            MarshalHelpers.MarshalUnmananagedArray2Struct<CMath.Vector3>(m_normals, (int)m_vertexCount);
+            MarshalHelpers.MarshalUnmanagedArrayToStruct<CMath.Vector3>(m_normals, (int)m_vertexCount);
 
         public IntPtr m_uvs;
 
         public CMath.Vector2[] UVs =>
-            MarshalHelpers.MarshalUnmananagedArray2Struct<CMath.Vector2>(m_uvs, (int)m_vertexCount);
+            MarshalHelpers.MarshalUnmanagedArrayToStruct<CMath.Vector2>(m_uvs, (int)m_vertexCount);
 
         public IntPtr m_indices;
 
         public uint[] Indices =>
-            MarshalHelpers.MarshalUnmananagedArray2Struct<uint>(m_indices, (int)m_indexCount);
+            MarshalHelpers.MarshalUnmanagedArrayToStruct<uint>(m_indices, (int)m_indexCount);
 
         public int[] ConvertedIndices =>
             Array.ConvertAll(Indices, val => checked((int)val));
@@ -175,7 +175,7 @@ namespace Psych
         public IntPtr m_materials;
 
         public CPPMaterial[] CPPMaterials => 
-            MarshalHelpers.MarshalUnmananagedArray2Struct<CPPMaterial>(m_materials, (int)m_numberOfMaterials);
+            MarshalHelpers.MarshalUnmanagedArrayToStruct<CPPMaterial>(m_materials, (int)m_numberOfMaterials);
     #endif
 
         public uint m_numberOfChildren;
@@ -195,24 +195,24 @@ namespace Psych
         public uint m_numberOfObjects;
 
         public CPPObject[] CPPObjects =>
-            MarshalHelpers.MarshalUnmananagedArray2Struct<CPPObject>(m_objects, (int) m_numberOfObjects);
+            MarshalHelpers.MarshalUnmanagedArrayToStruct<CPPObject>(m_objects, (int) m_numberOfObjects);
     }
 
     public class MarshalHelpers
     {
-        public static void MarshalUnmananagedArray2Struct<T>(IntPtr unmanagedArray, int length, out T[] mangagedArray)
+        public static void MarshalUnmanagedArrayToStruct<T>(IntPtr unmanagedArray, int length, out T[] managedArray)
         {
             var size = Marshal.SizeOf(typeof(T));
-            mangagedArray = new T[length];
+            managedArray = new T[length];
 
             for (int i = 0; i < length; i++)
             {
                 IntPtr ins = new IntPtr(unmanagedArray.ToInt64() + i * size);
-                mangagedArray[i] = Marshal.PtrToStructure<T>(ins);
+                managedArray[i] = Marshal.PtrToStructure<T>(ins);
             }
         }
 
-        public static T[] MarshalUnmananagedArray2Struct<T>(IntPtr unmanagedArray, int length)
+        public static T[] MarshalUnmanagedArrayToStruct<T>(IntPtr unmanagedArray, int length)
         {
             var size = Marshal.SizeOf(typeof(T));
             T[] mangagedArray = new T[length];
