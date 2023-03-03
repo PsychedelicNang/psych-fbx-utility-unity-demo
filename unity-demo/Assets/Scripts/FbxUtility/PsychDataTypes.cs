@@ -82,8 +82,6 @@ namespace Psych
         CRESULT_ROOT_NODE_NOT_FOUND
     };
 
-    #region Class Definitions
-
     #if USE_MATERIALS
     public struct ManagedMaterial
     {
@@ -253,5 +251,4 @@ namespace Psych
             return tex;
         }
     }
-    #endregion
 }
