@@ -19,59 +19,65 @@ namespace Psych
     
     public class PsychFbxUtility : MonoBehaviour
     {
-        #region Member Variables
-        private static CPPFBXHandler m_managedFBXHandler;
-        static IntPtr unmanagedFBXHandler;
+        private static readonly int EmissionColor = Shader.PropertyToID("_EmissionColor");
+        private static readonly int MainTex = Shader.PropertyToID("_MainTex");
+        private static readonly int BumpMap = Shader.PropertyToID("_BumpMap");
+        private static readonly int BumpScale = Shader.PropertyToID("_BumpScale");
+        private static readonly int Metallic = Shader.PropertyToID("Metallic");
+        private static readonly int MetallicGlossMap = Shader.PropertyToID("_MetallicGlossMap");
+        private static readonly int Smoothness = Shader.PropertyToID("Smoothness");
+        private static readonly int EmissionMap = Shader.PropertyToID("_EmissionMap");
+        
+        private ManagedFbxHandler managedFbxHandler;
+        private IntPtr unmanagedFbxHandler;
 
-        MeshFilter          m_unityMeshFilter;
-        Mesh                m_unityMesh;
-        MeshRenderer        m_unityMeshRenderer;
-        Transform           m_unityObjectTransform;
+        private MeshFilter         unityMeshFilter;
+        private Mesh               unityMesh;
+        private MeshRenderer       unityMeshRenderer;
+        private Transform          unityObjectTransform;
        
-        public List<GameObject>    m_unityGameObjects;
-        #endregion
+        public List<GameObject>    unityGameObjects;
 
         #region Class Methods
-        void Start () {
-            TimeSpan m_durationFileLoad;
-            TimeSpan m_durationFileParsed;
-
-            m_unityMeshFilter = gameObject.AddComponent<MeshFilter>();
-            m_unityMesh = m_unityMeshFilter.mesh;
-            m_unityMeshRenderer = gameObject.AddComponent<MeshRenderer>();
-            m_unityObjectTransform = gameObject.GetComponent<Transform>();
+        
+        void Start () 
+        {
+            unityMeshFilter = gameObject.AddComponent<MeshFilter>();
+            unityMesh = unityMeshFilter.mesh;
+            unityMeshRenderer = gameObject.AddComponent<MeshRenderer>();
+            unityObjectTransform = gameObject.GetComponent<Transform>();
 
             // C++ handler which is unmanaged memory (we need to delete by calling DLLDestroyFBXHandler())
-            unmanagedFBXHandler = PsychFbxUtilityDll.CreateFBXHandler();
+            unmanagedFbxHandler = PsychFbxUtilityDll.CreateFBXHandler();
 
-            DateTime m_timeBeforeFileLoad = DateTime.Now;
+            DateTime timeBeforeFileLoad = DateTime.Now;
 
             var fbxPath = "../Submodules/psych-fbx-utility/psych-fbx-utility-vs/resources/SM_PistolArnold.fbx";
 
-            CRESULT result = (CRESULT)PsychFbxUtilityDll.LoadFBXFile(unmanagedFBXHandler, fbxPath);
-		    DateTime m_timeAfterFileLoad = DateTime.Now;
+            CRESULT result = (CRESULT)PsychFbxUtilityDll.LoadFBXFile(unmanagedFbxHandler, fbxPath);
+		    DateTime timeAfterFileLoad = DateTime.Now;
 		    print (result);
-            m_durationFileLoad = m_timeAfterFileLoad - m_timeBeforeFileLoad;
+            var durationFileLoad = timeAfterFileLoad - timeBeforeFileLoad;
 
             switch (result)
             {
                 case CRESULT.CRESULT_SUCCESS:
                     {
-                        DateTime m_timeBeforeFileParsed = DateTime.Now;
-                        CSParseFBXHandler();
-                        DateTime m_timeAfterFileParsed = DateTime.Now;
+                        DateTime timeBeforeFileParsed = DateTime.Now;
+                        ParseFbxHandler();
+                        DateTime timeAfterFileParsed = DateTime.Now;
 
-                        m_durationFileParsed = m_timeAfterFileParsed - m_timeBeforeFileParsed;
+                        var durationFileParsed = timeAfterFileParsed - timeBeforeFileParsed;
 
-                        if (m_durationFileLoad.Seconds > 0)
-                            print("The FBX File loaded in: " + m_durationFileLoad.Seconds + "." + m_durationFileLoad.Milliseconds + " s");
+                        if (durationFileLoad.Seconds > 0)
+                            print("The FBX File loaded in: " + durationFileLoad.Seconds + "." + durationFileLoad.Milliseconds + " s");
                         else
-                            print("The FBX File loaded in: " + m_durationFileLoad.Milliseconds + " ms");
+                            print("The FBX File loaded in: " + durationFileLoad.Milliseconds + " ms");
 
-                        if (m_durationFileParsed.Seconds > 0)
-                            print("The FBX File was parsed in: " + m_durationFileParsed.Seconds + "." + m_durationFileParsed.Milliseconds + " s");
+                        if (durationFileParsed.Seconds > 0)
+                            print("The FBX File was parsed in: " + durationFileParsed.Seconds + "." + durationFileParsed.Milliseconds + " s");
                         else
-                            print("The FBX File was parsed in: " + m_durationFileParsed.Milliseconds + " ms");
+                            print("The FBX File was parsed in: " + durationFileParsed.Milliseconds + " ms");
                     }
                     break;
                 case CRESULT.CRESULT_INCORRECT_FILE_PATH:
@@ -90,178 +96,205 @@ namespace Psych
                     break;
             }
 
-            m_unityObjectTransform.localScale = new Vector3(10.0f, 10.0f, 10.0f);
-            m_unityObjectTransform.Translate(new Vector3(0.0f, 3.0f, 0.0f));
+            unityObjectTransform.localScale = new Vector3(10.0f, 10.0f, 10.0f);
+            unityObjectTransform.Translate(new Vector3(0.0f, 3.0f, 0.0f));
         }
 
-        void CSParseFBXHandler()
+        private void ParseFbxHandler()
         {
-            m_managedFBXHandler = (CPPFBXHandler)Marshal.PtrToStructure(unmanagedFBXHandler, typeof(CPPFBXHandler));
+            managedFbxHandler = (ManagedFbxHandler)Marshal.PtrToStructure(unmanagedFbxHandler, typeof(ManagedFbxHandler));
 
-            m_unityGameObjects = new List<GameObject>((int)m_managedFBXHandler.CPPFBXScene.m_numberOfObjects);
+            unityGameObjects = new List<GameObject>((int)managedFbxHandler.ManagedFBXScene.numberOfNativeObjects);
 
-            CPPObject[] sceneObjects = m_managedFBXHandler.CPPFBXScene.CPPObjects;
+            ManagedObject[] sceneObjects = managedFbxHandler.ManagedFBXScene.ManagedObjects;
 
             for (uint currObjectIndex = 0;
-                 currObjectIndex < (int)m_managedFBXHandler.CPPFBXScene.m_numberOfObjects;
+                 currObjectIndex < (int)managedFbxHandler.ManagedFBXScene.numberOfNativeObjects;
                  currObjectIndex++)
             {
                 GameObject unityGameObject = new GameObject();
-                m_unityGameObjects.Add(unityGameObject);
+                unityGameObjects.Add(unityGameObject);
 
                 MeshFilter currMeshFilter = unityGameObject.AddComponent<MeshFilter>();
                 MeshRenderer currMeshRenderer = unityGameObject.AddComponent<MeshRenderer>();
 
-                unityGameObject.name = sceneObjects[currObjectIndex].Name;
+                var currentManagedObject = sceneObjects[currObjectIndex];
+                unityGameObject.name = currentManagedObject.ManagedName;
 
-                print("Object: " + sceneObjects[currObjectIndex].Name + "\tMaterial Count: " + sceneObjects[currObjectIndex].m_numberOfMaterials + "\tNumber of Children: " + sceneObjects[currObjectIndex].m_numberOfChildren);
+                print("Object: " + currentManagedObject.ManagedName + "\tMaterial Count: " + currentManagedObject.nativeNumberOfMaterials + "\tNumber of Children: " + currentManagedObject.nativeNumberOfChildren);
 
                 // Mesh info
-                if (sceneObjects[currObjectIndex].CPPMesh.m_vertexCount > 0)
-                {
-                    CMath.Vector3[] vertices = sceneObjects[currObjectIndex].CPPMesh.VertexPositions;
-                    CMath.Vector3[] normals = sceneObjects[currObjectIndex].CPPMesh.Normals;
-                    CMath.Vector2[] uvs = sceneObjects[currObjectIndex].CPPMesh.UVs;
-
-                    Vector3[] unityVerts = new Vector3[sceneObjects[currObjectIndex].CPPMesh.m_vertexCount];
-                    Vector3[] unityNormals = new Vector3[sceneObjects[currObjectIndex].CPPMesh.m_vertexCount];
-                    Vector2[] unityUVs = new Vector2[sceneObjects[currObjectIndex].CPPMesh.m_vertexCount];
-                
-                    for (uint currVertex = 0; currVertex < sceneObjects[currObjectIndex].CPPMesh.m_vertexCount; currVertex++)
-                    {
-                        unityVerts[currVertex].x = vertices[currVertex].x;
-                        unityVerts[currVertex].y = vertices[currVertex].y;
-                        unityVerts[currVertex].z = vertices[currVertex].z;
-
-                        unityNormals[currVertex].x = normals[currVertex].x;
-                        unityNormals[currVertex].y = normals[currVertex].y;
-                        unityNormals[currVertex].z = normals[currVertex].z;
-
-                        unityUVs[currVertex].x = uvs[currVertex].x;
-                        unityUVs[currVertex].y = uvs[currVertex].y;
-                    }
-
-                    var mesh = currMeshFilter.mesh;
-                    mesh.vertices = unityVerts;
-                    mesh.normals = unityNormals;
-                    mesh.uv = unityUVs;
-                    mesh.triangles = sceneObjects[currObjectIndex].CPPMesh.ConvertedIndices;
-                    
-                }
+                FillOutMeshFilter(currMeshFilter, currentManagedObject);
                 
                 // Material info
-                if (sceneObjects[currObjectIndex].m_numberOfMaterials > 0)
+                FillOutMeshRenderer(currMeshRenderer, currentManagedObject);
+            }
+            
+            for (uint currObjectIndex = 0; currObjectIndex < managedFbxHandler.ManagedFBXScene.numberOfNativeObjects; currObjectIndex++)
+            {
+                unityGameObjects[(int)currObjectIndex].transform.parent = unityGameObjects[(int)sceneObjects[currObjectIndex].nativeParentArrayIndexID].transform;
+            }
+
+            unityGameObjects[0].transform.parent = unityObjectTransform;
+        }
+        
+        
+        private bool FillOutMeshFilter(MeshFilter targetMeshFilter, ManagedObject managedObject)
+        {
+            var managedMesh = managedObject.ManagedMesh;
+            if (managedMesh.nativeVertexCount > 0)
+            {
+                NativeMath.Vector3[] vertices = managedMesh.ManagedVertexPositions;
+                NativeMath.Vector3[] normals = managedMesh.ManagedNormals;
+                NativeMath.Vector2[] uvs = managedMesh.ManagedUVs;
+
+                Vector3[] unityVerts = new Vector3[managedMesh.nativeVertexCount];
+                Vector3[] unityNormals = new Vector3[managedMesh.nativeVertexCount];
+                Vector2[] unityUVs = new Vector2[managedMesh.nativeVertexCount];
+                
+                for (uint currVertex = 0; currVertex < managedMesh.nativeVertexCount; currVertex++)
                 {
-                    currMeshRenderer.materials = new Material[sceneObjects[currObjectIndex].m_numberOfMaterials];
+                    unityVerts[currVertex].x = vertices[currVertex].x;
+                    unityVerts[currVertex].y = vertices[currVertex].y;
+                    unityVerts[currVertex].z = vertices[currVertex].z;
 
-                    for (int currMaterialIndex = 0; currMaterialIndex < sceneObjects[currObjectIndex].m_numberOfMaterials; currMaterialIndex++)
+                    unityNormals[currVertex].x = normals[currVertex].x;
+                    unityNormals[currVertex].y = normals[currVertex].y;
+                    unityNormals[currVertex].z = normals[currVertex].z;
+
+                    unityUVs[currVertex].x = uvs[currVertex].x;
+                    unityUVs[currVertex].y = uvs[currVertex].y;
+                }
+
+                var mesh = targetMeshFilter.mesh;
+                mesh.vertices = unityVerts;
+                mesh.normals = unityNormals;
+                mesh.uv = unityUVs;
+                mesh.triangles = managedMesh.ConvertedIndices;
+                
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool FillOutMeshRenderer(MeshRenderer targetMeshRenderer, ManagedObject managedObject)
+        {
+            if (managedObject.nativeNumberOfMaterials > 0)
+            {
+                targetMeshRenderer.materials = new Material[managedObject.nativeNumberOfMaterials];
+
+                for (int currMaterialIndex = 0; currMaterialIndex < managedObject.nativeNumberOfMaterials; currMaterialIndex++)
+                {
+                    ManagedMaterial[] materials = managedObject.ManagedMaterials;
+                    
+                    targetMeshRenderer.materials[currMaterialIndex].shader = Shader.Find("Standard");
+
+                    uint currentTextureIndex = 0;
+
+                    Texture2D[] textures = null;
+                    if (materials[currMaterialIndex].nativeTextureCount > 0)
                     {
-                        CPPMaterial[] materials = sceneObjects[currObjectIndex].CPPMaterials;
-                        
-                        currMeshRenderer.materials[currMaterialIndex].shader = Shader.Find("Standard");
-
-                        uint currentTextureIndex = 0;
-
-                        Texture2D[] textures = null;
-                        if (materials[currMaterialIndex].m_textureCount > 0)
+                        textures = materials[currMaterialIndex].ManagedTextures;
+                    }
+                    
+                    for (int propertyIndex = 0; propertyIndex < (int)NativeMaterialInfo.PropertyType.PROPERTYTYPE_COUNT; propertyIndex++)
+                    {
+                        ManagedMaterial.ManagedPropertyData[] propertyData = materials[currMaterialIndex].ManagedMaterialProperties;
+                        if (propertyData[propertyIndex].ManagedTextureRelativeFileName != null ||
+                            propertyData[propertyIndex].ManagedTextureAbsoluteFilePath != null)
                         {
-                            textures = materials[currMaterialIndex].Textures;
-                        }
-                        
-                        for (int propertyIndex = 0; propertyIndex < (int)CMaterialInfo.PropertyType.PROPERTYTYPE_COUNT; propertyIndex++)
-                        {
-                            CPPMaterial.CPPPropertyData[] propertyData = materials[currMaterialIndex].MaterialProperties;
-                            if (propertyData[propertyIndex].TextureRelativeFileName != null ||
-                                propertyData[propertyIndex].TextureAbsoluteFilePath != null)
+                            Color color;
+                            color.r = propertyData[propertyIndex].nativeDataColorValues.x;
+                            color.g = propertyData[propertyIndex].nativeDataColorValues.y;
+                            color.b = propertyData[propertyIndex].nativeDataColorValues.z;
+                            color.a = propertyData[propertyIndex].nativeDataColorValues.w;
+
+                            var currentMaterial = targetMeshRenderer.materials[currMaterialIndex];
+                            switch (propertyData[propertyIndex].nativePropertyType)
                             {
-                                Color color;
-                                color.r = propertyData[propertyIndex].m_dataColorValues.x;
-                                color.g = propertyData[propertyIndex].m_dataColorValues.y;
-                                color.b = propertyData[propertyIndex].m_dataColorValues.z;
-                                color.a = propertyData[propertyIndex].m_dataColorValues.w;
-                                
-                                switch (propertyData[propertyIndex].m_propertyType)
-                                {
-                                    case CMaterialInfo.PropertyType.PROPERTYTYPE_EMISSIVE:
-                                        {
-                                            
-                                            currMeshRenderer.materials[currMaterialIndex].EnableKeyword("_EMISSION");
-                                            currMeshRenderer.materials[currMaterialIndex].SetTexture("_EmissionMap", textures[currentTextureIndex]);
-                                            currMeshRenderer.materials[currMaterialIndex].SetColor("_EmissionColor", color);
-                                        }
-                                        break;
-                                    case CMaterialInfo.PropertyType.PROPERTYTYPE_AMBIENT:
-                                        break;
-                                    case CMaterialInfo.PropertyType.PROPERTYTYPE_DIFFUSE:
-                                        {
-                                            currMeshRenderer.materials[currMaterialIndex].EnableKeyword("_MainTex");
-                                            currMeshRenderer.materials[currMaterialIndex].SetTexture("_MainTex", textures[currentTextureIndex]);
-                                            currMeshRenderer.materials[currMaterialIndex].SetColor("_MainTex", color);
-                                        }
-                                        break;
-                                    case CMaterialInfo.PropertyType.PROPERTYTYPE_NORMAL:
-                                        {
-                                            currMeshRenderer.materials[currMaterialIndex].EnableKeyword("_BumpMap");
-                                            currMeshRenderer.materials[currMaterialIndex].SetTexture("_BumpMap", textures[currentTextureIndex]);
-                                            currMeshRenderer.materials[currMaterialIndex].SetFloat("_BumpScale", color.a);
-                                        }
-                                        break;
-                                    case CMaterialInfo.PropertyType.PROPERTYTYPE_BUMP:
-                                        {
-                                            currMeshRenderer.materials[currMaterialIndex].EnableKeyword("_BumpMap");
-                                            currMeshRenderer.materials[currMaterialIndex].SetTexture("_BumpMap", textures[currentTextureIndex]);
-                                            currMeshRenderer.materials[currMaterialIndex].SetFloat("_BumpScale", color.a);
-                                        }
-                                        break;
-                                    case CMaterialInfo.PropertyType.PROPERTYTYPE_TRANSPARENCY:
-                                        break;
-                                    case CMaterialInfo.PropertyType.PROPERTYTYPE_DISPLACEMENT:
-                                        break;
-                                    case CMaterialInfo.PropertyType.PROPERTYTYPE_VECTOR_DISPLACEMENT:
-                                        break;
-                                    case CMaterialInfo.PropertyType.PROPERTYTYPE_SPECULAR:
-                                        {
-                                            currMeshRenderer.materials[currMaterialIndex].EnableKeyword("_METALLICGLOSSMAP");
-                                            currMeshRenderer.materials[currMaterialIndex].SetTexture("_MetallicGlossMap", textures[currentTextureIndex]);
-                                            currMeshRenderer.materials[currMaterialIndex].SetFloat("Metallic", color.a);
-                                        }
-                                        break;
-                                    case CMaterialInfo.PropertyType.PROPERTYTYPE_SHININESS:
-                                        break;
-                                    case CMaterialInfo.PropertyType.PROPERTYTYPE_REFLECTION:
-                                        {
-                                            currMeshRenderer.materials[currMaterialIndex].EnableKeyword("_Glossiness");
-                                            currMeshRenderer.materials[currMaterialIndex].SetFloat("Smoothness", color.a);
-                                        }
-                                        break;
-                                    case CMaterialInfo.PropertyType.PROPERTYTYPE_COUNT:
-                                        break;
-                                    default:
-                                        break;
-                                }
-
-                                ++currentTextureIndex;
+                                case NativeMaterialInfo.PropertyType.PROPERTYTYPE_EMISSIVE:
+                                    {
+                                        
+                                        currentMaterial.EnableKeyword("_EMISSION");
+                                        if (textures != null)
+                                            currentMaterial.SetTexture(EmissionMap, textures[currentTextureIndex]);
+                                        currentMaterial.SetColor(EmissionColor, color);
+                                    }
+                                    break;
+                                case NativeMaterialInfo.PropertyType.PROPERTYTYPE_AMBIENT:
+                                    break;
+                                case NativeMaterialInfo.PropertyType.PROPERTYTYPE_DIFFUSE:
+                                    {
+                                        currentMaterial.EnableKeyword("_MainTex");
+                                        if (textures != null)
+                                            currentMaterial.SetTexture(MainTex, textures[currentTextureIndex]);
+                                        currentMaterial.SetColor(MainTex, color);
+                                    }
+                                    break;
+                                case NativeMaterialInfo.PropertyType.PROPERTYTYPE_NORMAL:
+                                    {
+                                        currentMaterial.EnableKeyword("_BumpMap");
+                                        if (textures != null)
+                                            currentMaterial.SetTexture(BumpMap, textures[currentTextureIndex]);
+                                        currentMaterial.SetFloat(BumpScale, color.a);
+                                    }
+                                    break;
+                                case NativeMaterialInfo.PropertyType.PROPERTYTYPE_BUMP:
+                                    {
+                                        currentMaterial.EnableKeyword("_BumpMap");
+                                        if (textures != null)
+                                            currentMaterial.SetTexture(BumpMap, textures[currentTextureIndex]);
+                                        currentMaterial.SetFloat(BumpScale, color.a);
+                                    }
+                                    break;
+                                case NativeMaterialInfo.PropertyType.PROPERTYTYPE_TRANSPARENCY:
+                                    break;
+                                case NativeMaterialInfo.PropertyType.PROPERTYTYPE_DISPLACEMENT:
+                                    break;
+                                case NativeMaterialInfo.PropertyType.PROPERTYTYPE_VECTOR_DISPLACEMENT:
+                                    break;
+                                case NativeMaterialInfo.PropertyType.PROPERTYTYPE_SPECULAR:
+                                    {
+                                        currentMaterial.EnableKeyword("_METALLICGLOSSMAP");
+                                        if (textures != null)
+                                            currentMaterial.SetTexture(MetallicGlossMap, textures[currentTextureIndex]);
+                                        currentMaterial.SetFloat(Metallic, color.a);
+                                    }
+                                    break;
+                                case NativeMaterialInfo.PropertyType.PROPERTYTYPE_SHININESS:
+                                    break;
+                                case NativeMaterialInfo.PropertyType.PROPERTYTYPE_REFLECTION:
+                                    {
+                                        currentMaterial.EnableKeyword("_Glossiness");
+                                        currentMaterial.SetFloat(Smoothness, color.a);
+                                    }
+                                    break;
+                                case NativeMaterialInfo.PropertyType.PROPERTYTYPE_COUNT:
+                                    break;
+                                default:
+                                    break;
                             }
+
+                            ++currentTextureIndex;
                         }
                     }
                 }
-            }
-            
-            for (uint currObjectIndex = 0; currObjectIndex < m_managedFBXHandler.CPPFBXScene.m_numberOfObjects; currObjectIndex++)
-            {
-                m_unityGameObjects[(int)currObjectIndex].transform.parent = m_unityGameObjects[(int)sceneObjects[currObjectIndex].m_parentArrayIndexID].transform;
-            }
 
-            m_unityGameObjects[0].transform.parent = m_unityObjectTransform;
+                return true;
+            }
+             
+            return false;
         }
         
         private void OnDestroy()
         {
             // Delete C++ handler which is unmanaged memory.
-            PsychFbxUtilityDll.DestroyFBXHandler(unmanagedFBXHandler);
+            PsychFbxUtilityDll.DestroyFBXHandler(unmanagedFbxHandler);
 
-            unmanagedFBXHandler = IntPtr.Zero;
+            unmanagedFbxHandler = IntPtr.Zero;
         }
+        
         #endregion
     }
 }
